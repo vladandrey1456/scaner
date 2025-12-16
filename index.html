@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Scanare produs</title>
+
+  <!-- Librăria pentru scanare cod de bare -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Flatpickr pentru calendar personalizat -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom right, #e0f0ff, #fff5e6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background-color: #ffffffdd;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    h2 { color: #004aad; margin-bottom: 20px; }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+      color: white;
+    }
+
+    #startScan { background-color: #ff6600; }
+    #startScan:hover { background-color: #e65c00; }
+
+    #sendButton { background-color: #004aad; }
+    #sendButton:hover { background-color: #003580; }
+
+    #reader {
+      width: 100%;
+      margin: 15px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      display: none;
+    }
+
+    #confirmMsg { font-size: 14px; color: green; margin-top: 10px; display: none; }
+
+    footer {
+      margin-top: 15px;
+      font-size: 12px;
+      color: #333;
+      text-align: center;
+    }
+
+    footer img {
+      height: 12px;
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Adaugă produs în inventar</h2>
+
+  <input id="codBare" placeholder="Cod de bare">
+  <button id="startScan">Scanează cod de bare</button>
+
+  <div id="reader"></div>
+
+  <input id="locatie" placeholder="Raft / locație">
+  <input id="cantitate" type="number" placeholder="Cantitate">
+
+  <!-- Input text pentru data cu Flatpickr -->
+  <input id="expirare" type="text" placeholder="Data expirării (ZZ/LL/AAAA)">
+
+  <button id="sendButton" onclick="trimite()">Trimite în Google Sheet</button>
+
+  <div id="confirmMsg">Datele au fost înregistrate cu succes!</div>
+
+  <footer>
+    Copyright © 2026 · Toate drepturile rezervate · by Lucruri Pareri si Idei
+    <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" alt="YouTube logo">
+  </footer>
+</div>
+
+<script>
+// Initialize Flatpickr cu format DD/MM/YYYY
+flatpickr("#expirare", {
+    dateFormat: "d/m/Y",
+    allowInput: true
+});
+
+// Scanner cod de bare
+function onScanSuccess(decodedText) {
+  document.getElementById("codBare").value = decodedText;
+  html5QrcodeScanner.stop().then(() => {
+    document.getElementById("reader").style.display = "none";
+  });
+}
+let html5QrcodeScanner = new Html5Qrcode("reader");
+document.getElementById("startScan").addEventListener("click", function() {
+  document.getElementById("reader").style.display = "block";
+  html5QrcodeScanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    onScanSuccess
+  );
+});
+
+// Trimitere date în Google Sheet
+function trimite() {
+  let codBare = document.getElementById("codBare").value;
+  let locatie = document.getElementById("locatie").value;
+  let cantitate = document.getElementById("cantitate").value;
+  let expirare = document.getElementById("expirare").value; // deja DD/MM/YYYY din Flatpickr
+
+  let data = {
+    codBare: codBare,
+    locatie: locatie,
+    cantitate: cantitate,
+    expirare: expirare
+  };
+
+  fetch("https://script.google.com/macros/s/AKfycbzGmX3xtxFu0RDV5dMiPK0nQuEGHGVcihqOs7PgsrppR1B9B1-Ja1NeIbSq1cpH1VIu/exec", {
+    method: "POST",
+    body: JSON.stringify(data)
+  })
+  .then(() => {
+    let msg = document.getElementById("confirmMsg");
+    msg.style.display = "block";
+    setTimeout(() => { msg.style.display = "none"; }, 3000);
+
+    // Curățăm câmpurile
+    document.getElementById("codBare").value = "";
+    document.getElementById("locatie").value = "";
+    document.getElementById("cantitate").value = "";
+    document.getElementById("expirare").value = "";
+  })
+  .catch(() => alert("Eroare la trimitere"));
+}
+</script>
+
+</body>
+</html>
